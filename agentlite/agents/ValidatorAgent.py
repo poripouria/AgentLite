@@ -1,5 +1,6 @@
 from agentlite.actions import BaseAction
 from agentlite.agents import BaseAgent
+from agentlite.commons import TaskPackage
 import json
 
 class ValidateAnswer(BaseAction):

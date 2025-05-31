@@ -184,3 +184,8 @@ env.sh
 
 #credential
 credential.json
+
+
+#files
+
+tests\test_openaiAPI.py

@@ -66,7 +66,7 @@ class ManagerAgent(BaseAgent):
         )
 
     def agent_match(self, agent_name: str, agent: ABCAgent) -> bool:
-        """math the generated action of agent_name with an agent in the team
+        """match the generated action of agent_name with an agent in the team
 
         :param agent_name: the agent name
         :type agent_name: str

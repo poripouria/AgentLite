@@ -187,5 +187,5 @@ credential.json
 
 
 #files
-
 tests\test_openaiAPI.py
+tests\test_ollama.py

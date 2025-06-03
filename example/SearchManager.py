@@ -29,7 +29,9 @@ class SearchManager(ManagerAgent):
 def test_manager_agent():
     # setting the llm config of manager agent
     llm_config_dict = {
-        "llm_name": "gpt-3.5-turbo",
+        "provider": "ollama",
+        "base_url": "http://localhost:11434",
+        "llm_name": "gemma3:4b",
         "temperature": 0.9,
         "context_len": 4000,
     }

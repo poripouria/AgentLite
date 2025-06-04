@@ -172,7 +172,7 @@ class ManagerAgent(BaseAgent):
                     validation_result = self.validator.respond(validation_task)
                     if validation_result.completion == "validated":
                         self.logger.info("Validation successful. Proceeding with the validated answer.")
-                        return validation_result.answer  # Return validated response
+                        return observation  # Return validated response
                     else:
                         self.logger.warning("Validation failed. Requesting revision from the labor agent.")
                         # Reassign the task to the labor agent for revision

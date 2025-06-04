@@ -52,7 +52,6 @@ class ValidatorAgent(BaseAgent):
         # check if llm_response need to be cleaned
         if llm_response.startswith("```json"):
             llm_response = re.sub(r'^```json|```$', '', llm_response).strip()
-        print(f"\n\nValidatorAgent received response: {llm_response}\n\n")
         try:
             result = json.loads(llm_response)
             valid = result.get("valid", False)

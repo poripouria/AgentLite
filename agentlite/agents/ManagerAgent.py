@@ -203,7 +203,6 @@ class ManagerAgent(BaseAgent):
                         latest_observation = observation
                         
                         # Validate the observation using ValidatorAgent
-                        print(f"&&& Validating the observation with ValidatorAgent (attempt {retry_count + 1})")
                         validation_task = TaskPackage(
                             instruction=new_task_package.instruction,
                             answer=observation,

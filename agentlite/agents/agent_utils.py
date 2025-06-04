@@ -40,20 +40,38 @@ def parse_action(string: str) -> tuple[str, dict, bool]:
     """
 
     string = string.strip(" ").strip(".").strip(":").split("\n")[0]
-    pattern = r"^(\w+)\[(.+)\]$"
+    # Adjusted regex to better capture action name and arguments
+    pattern = r"^(?:Action:)?\s*(\w+)\[(.+)\]$"
     match = re.match(pattern, string)
     PARSE_FLAG = True
 
     if match:
         action_type = match.group(1).strip()
-        arguments = match.group(2).strip()
+        arguments_str = match.group(2).strip()
         try:
-            arguments = json.loads(arguments)
+            # Ensure arguments are treated as a JSON string
+            if not arguments_str.startswith('{') and not arguments_str.startswith('['):
+                # Attempt to fix common non-JSON-compliant string issues if possible,
+                # or handle as a simple string if it's not meant to be JSON.
+                # For now, we'll assume it should be JSON and try to parse.
+                # If it's a simple string like "some thought", it might fail here.
+                # Consider if the logic should accommodate non-JSON params for some actions.
+                arguments = json.loads(arguments_str)
+            else:
+                arguments = json.loads(arguments_str)
         except json.JSONDecodeError:
+            # Fallback or error handling if arguments are not valid JSON
+            # This might happen if the LLM doesn't format it as expected.
+            # Depending on requirements, could try to wrap in quotes or return as raw string.
+            # For now, marking as parse error.
             PARSE_FLAG = False
-            return string, {}, PARSE_FLAG
+            return string, {}, PARSE_FLAG # Return original string and empty dict on error
         return action_type, arguments, PARSE_FLAG
     else:
+        # Handle cases where the string does not match the expected Action[Arguments] format
+        # This could be a simple thought or a malformed action string.
+        # Consider returning the string as the action_type if it's a simple thought.
+        # For now, consistent with original behavior on mismatch.
         PARSE_FLAG = False
         return string, {}, PARSE_FLAG
 

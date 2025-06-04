@@ -25,7 +25,6 @@ class ManagerAgent(BaseAgent):
         instruction: str = DEFAULT_PROMPT["manager_instruction"],
         reasoning_type: str = "react",
         TeamAgents: List[ABCAgent] = [],
-        ValidatorAgent: ValidatorAgent = None,  # Add ValidatorAgent as a parameter
         logger: AgentLogger = DefaultLogger,
         **kwargs
     ):
@@ -51,6 +50,9 @@ class ManagerAgent(BaseAgent):
         :param logger: the logger for this agent, defaults to DefaultLogger
         :type logger: AgentLogger, optional
         """
+        validator_agent = ValidatorAgent(self.llm)  # Initialize a default ValidatorAgent instance
+        self.validator
+
         super().__init__(
             name=name,
             role=role,
@@ -61,7 +63,7 @@ class ManagerAgent(BaseAgent):
             logger=logger,
         )
         self.team = TeamAgents
-        self.validator = ValidatorAgent  # Store the ValidatorAgent instance
+        self.validator = validator_agent  # Store the ValidatorAgent instance
         self.prompt_gen = ManagerPromptGen(
             agent_role=self.role,
             constraint=self.constraint,
@@ -173,6 +175,7 @@ class ManagerAgent(BaseAgent):
                 observation = agent(new_task_package)
 
                 # Validate the observation using ValidatorAgent
+                print("*** Validating the observation with ValidatorAgent ***")
                 if self.validator:
                     validation_task = TaskPackage(
                         instruction=new_task_package.instruction,

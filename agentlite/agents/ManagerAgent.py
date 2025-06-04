@@ -12,6 +12,7 @@ from agentlite.logging.terminal_logger import AgentLogger
 
 from .ABCAgent import ABCAgent
 from .BaseAgent import BaseAgent
+from .ValidatorAgent import ValidatorAgent
 
 
 class ManagerAgent(BaseAgent):

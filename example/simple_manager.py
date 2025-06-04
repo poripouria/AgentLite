@@ -6,7 +6,7 @@ llm_config_dict = {
     "temperature": 0.9,
     "provider": "ollama",
     "base_url": "http://localhost:11434",
-    "llm_name": "deepseek-r1:8b",
+    "llm_name": "deepseek-r1:8b", # "gemma3:4b"
     # "llm_name": "o4-mini",
     # "provider": "openai"
 }

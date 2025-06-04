@@ -132,11 +132,22 @@ class ManagerAgent(BaseAgent):
             for agent in self.team:
                 if self.agent_match(action_name, agent):
                     agent_act = AgentAct(name=action_name, params=args)
+                else:
+                    agent_act = AgentAct(name=FinishAct.action_name, params={})
+                    self.logger.warning(
+                        f"Action {action_name} does not match any labor agent in the team."
+                    )
 
         # if action_name is action
         for action in self.actions:
             if act_match(action_name, action):
                 agent_act = AgentAct(name=action_name, params=args)
+            else:
+                agent_act = AgentAct(name=FinishAct.action_name, params={})
+                self.logger.warning(
+                    f"Action {action_name} does not match any action in the team."
+                )
+                
         return agent_act
 
     def forward(self, task: TaskPackage, agent_act: AgentAct) -> str:

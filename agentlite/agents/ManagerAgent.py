@@ -25,6 +25,7 @@ class ManagerAgent(BaseAgent):
         instruction: str = DEFAULT_PROMPT["manager_instruction"],
         reasoning_type: str = "react",
         TeamAgents: List[ABCAgent] = [],
+        ValidatorAgent: ValidatorAgent = None,  # Add ValidatorAgent as a parameter
         logger: AgentLogger = DefaultLogger,
         **kwargs
     ):
@@ -60,6 +61,7 @@ class ManagerAgent(BaseAgent):
             logger=logger,
         )
         self.team = TeamAgents
+        self.validator = ValidatorAgent  # Store the ValidatorAgent instance
         self.prompt_gen = ManagerPromptGen(
             agent_role=self.role,
             constraint=self.constraint,
@@ -148,6 +150,8 @@ class ManagerAgent(BaseAgent):
         :rtype: str
         """
         act_found_flag = False
+        observation = None
+
         # if action is labor agent call
         for agent in self.team:
             if self.agent_match(agent_act.name, agent):
@@ -156,7 +160,21 @@ class ManagerAgent(BaseAgent):
                     agent_act.params[AGENT_CALL_ARG_KEY], agent.id
                 )
                 observation = agent(new_task_package)
-                return observation
+
+                # Validate the observation using ValidatorAgent
+                if self.validator:
+                    validation_task = TaskPackage(
+                        instruction=new_task_package.instruction,
+                        answer=observation,
+                        task_creator=self.id,
+                        task_executor=self.validator.name,
+                    )
+                    validation_result = self.validator.respond(validation_task)
+                    if validation_result.completion == "validated":
+                        return validation_result.answer  # Return validated response
+                    else:
+                        return validation_result.answer  # Return feedback for revision
+
         # if action is inner action
         for action in self.actions:
             if act_match(agent_act.name, action):
@@ -166,10 +184,9 @@ class ManagerAgent(BaseAgent):
                     task.answer = observation
                     task.completion = "completed"
         # if not find this action
-        if act_found_flag:
-            return observation
-        else:
+        if not act_found_flag:
             observation = ACION_NOT_FOUND_MESS
+
         return observation
 
     def create_TP(self, task_ins: str, executor: str) -> TaskPackage:

@@ -52,7 +52,7 @@ class BaseLLM:
             return full_text
         
         response = requests.post(self.base_url, json={
-            "model": "gemma3:4b",
+            "model": "deepseek-r1:8b",
             "prompt": prompt,
         }, stream=True)
 
@@ -124,26 +124,25 @@ class LangchainOllamaLLM(BaseLLM):
             temperature=self.temperature,
             num_predict=self.max_tokens,
             base_url=llm_config.base_url
-            # api_key=llm_config.api_key,
         )
         human_template = "{prompt}"
         prompt = PromptTemplate(template=human_template, input_variables=["prompt"])
         self.llm_chain = LLMChain(prompt=prompt, llm=llm)
 
     def run(self, prompt: str):
-        return self.llm_chain.run(prompt)
+        return self.llm_chain.invoke(prompt)["text"]
 
 def get_llm_backend(llm_config: LLMConfig):
-    # llm_name = llm_config.llm_name
+    llm_name = llm_config.llm_name
     llm_provider = llm_config.provider
     if llm_provider == "ollama":
         return LangchainOllamaLLM(llm_config)
-    # if llm_name in OPENAI_CHAT_MODELS:
-    #     return LangchainChatModel(llm_config)
-    # elif llm_name in OPENAI_LLM_MODELS:
-    #     return LangchainLLM(llm_config)
-    # else:
-    #     return LangchainLLM(llm_config)
+    if llm_name in OPENAI_CHAT_MODELS:
+        return LangchainChatModel(llm_config)
+    elif llm_name in OPENAI_LLM_MODELS:
+        return LangchainLLM(llm_config)
+    else:
+        return LangchainLLM(llm_config)
     # TODO: add more llm providers and inference APIs but for now we are using langchainLLM as the default
     # Using other LLM providers will require additional setup and configuration
     # We suggest subclass BaseLLM and implement the run method for the specific provider in your own best practices

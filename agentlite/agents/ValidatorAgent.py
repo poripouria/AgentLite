@@ -2,6 +2,7 @@ from agentlite.actions import BaseAction
 from agentlite.agents import BaseAgent
 from agentlite.commons import TaskPackage
 import json
+import re
 
 class ValidateAnswer(BaseAction):
     def __init__(self):
@@ -27,7 +28,7 @@ class ValidateAnswer(BaseAction):
             f"Question: {question}\n"
             f"Answer: {answer}\n\n"
             f"Evaluate the correctness. Reply in JSON format as follows:\n"
-            f"{{\"valid\": true/false, \"feedback\": \"validation comments for feedback\"}}"
+            f"{{\"valid\": True/False, \"feedback\": \"validation comments for feedback\"}}"
         )
         # This assumes the agent's LLM responds to the prompt call
         return prompt
@@ -37,8 +38,9 @@ class ValidatorAgent(BaseAgent):
         super().__init__(
             name="ValidatorAgent",
             role="Validate responses from individual agents for correctness.",
+            llm=llm,
             actions=[ValidateAnswer()],
-            llm=llm
+            reasoning_type=None  # no inner actions for validation agent
         )
 
     def respond(self, task_pkg: TaskPackage, **kwargs):
@@ -47,7 +49,10 @@ class ValidatorAgent(BaseAgent):
         validate_action = self.actions[0]
         prompt = validate_action(question=question, answer=answer)
         llm_response = self.llm(prompt)
-
+        # check if llm_response need to be cleaned
+        if llm_response.startswith("```json"):
+            llm_response = re.sub(r'^```json|```$', '', llm_response).strip()
+        print(f"\n\nValidatorAgent received response: {llm_response}\n\n")
         try:
             result = json.loads(llm_response)
             valid = result.get("valid", False)

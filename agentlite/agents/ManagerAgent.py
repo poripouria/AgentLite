@@ -1,6 +1,6 @@
 from typing import List
 
-from agentlite.actions import FinishAct
+from agentlite.actions import FinishAct, ThinkAct
 from agentlite.agent_prompts import ManagerPromptGen
 from agentlite.agent_prompts.prompt_utils import DEFAULT_PROMPT
 from agentlite.agents.agent_utils import *
@@ -133,7 +133,7 @@ class ManagerAgent(BaseAgent):
                 if self.agent_match(action_name, agent):
                     agent_act = AgentAct(name=action_name, params=args)
                 else:
-                    agent_act = AgentAct(name=FinishAct.action_name, params={})
+                    agent_act = AgentAct(name=FinishAct.action_name, params=FinishAct.params_doc)
                     self.logger.warning(
                         f"Action {action_name} does not match any labor agent in the team."
                     )
@@ -143,7 +143,7 @@ class ManagerAgent(BaseAgent):
             if act_match(action_name, action):
                 agent_act = AgentAct(name=action_name, params=args)
             else:
-                agent_act = AgentAct(name=FinishAct.action_name, params={})
+                agent_act = AgentAct(name=FinishAct.action_name, params=FinishAct.params_doc)
                 self.logger.warning(
                     f"Action {action_name} does not match any action in the team."
                 )

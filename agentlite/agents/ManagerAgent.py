@@ -26,7 +26,8 @@ class ManagerAgent(BaseAgent):
         reasoning_type: str = "react",
         TeamAgents: List[ABCAgent] = [],
         logger: AgentLogger = DefaultLogger,
-        **kwargs
+        max_retries: int = 5,
+        enable_validation_retry: bool = True,        **kwargs
     ):
         """ManagerAgent inherits BaseAgent. It has all methods for base agent
         and it can communicate with other agent. It controls LaborAgents to complete tasks.
@@ -49,9 +50,15 @@ class ManagerAgent(BaseAgent):
         :type TeamAgents: List[ABCAgent], optional
         :param logger: the logger for this agent, defaults to DefaultLogger
         :type logger: AgentLogger, optional
+        :param max_retries: maximum number of retry attempts for validation, defaults to 3
+        :type max_retries: int, optional
+        :param enable_validation_retry: whether to enable retry loop for validation, defaults to True
+        :type enable_validation_retry: bool, optional
         """
-        validator_agent = ValidatorAgent(self.llm)  # Initialize a default ValidatorAgent instance
-        self.validator
+        validator_agent = ValidatorAgent(llm)  # Initialize a default ValidatorAgent instance
+        self.validator = validator_agent
+        self.max_retries = max_retries
+        self.enable_validation_retry = enable_validation_retry
 
         super().__init__(
             name=name,
@@ -148,8 +155,7 @@ class ManagerAgent(BaseAgent):
                 agent_act = AgentAct(name=FinishAct.action_name, params=FinishAct.params_doc)
                 self.logger.warning(
                     f"Action {action_name} does not match any action in the team."
-                )
-                
+                )                
         return agent_act
 
     def forward(self, task: TaskPackage, agent_act: AgentAct) -> str:
@@ -172,30 +178,66 @@ class ManagerAgent(BaseAgent):
                 new_task_package = self.create_TP(
                     agent_act.params[AGENT_CALL_ARG_KEY], agent.id
                 )
-                observation = agent(new_task_package)
-
-                # Validate the observation using ValidatorAgent
-                print("*** Validating the observation with ValidatorAgent ***")
-                if self.validator:
-                    validation_task = TaskPackage(
-                        instruction=new_task_package.instruction,
-                        answer=observation,
-                        task_creator=self.id,
-                        task_executor=self.validator.name,
-                    )
-                    validation_result = self.validator.respond(validation_task)
-                    if validation_result.completion == "validated":
-                        self.logger.info("Validation successful. Proceeding with the validated answer.")
-                        return observation  # Return validated response
-                    else:
-                        self.logger.warning("Validation failed. Requesting revision from the labor agent.")
-                        # Reassign the task to the labor agent for revision
-                        revised_task_package = self.create_TP(
-                            task_ins=new_task_package.instruction,
-                            executor=agent.id
+                
+                # Implement retry loop for validation
+                if self.enable_validation_retry and self.validator:
+                    retry_count = 0
+                    validation_passed = False
+                    latest_observation = None
+                    validation_feedback_history = []
+                    
+                    while retry_count <= self.max_retries and not validation_passed:
+                        # Get observation from labor agent
+                        if retry_count == 0:
+                            # First attempt
+                            observation = agent(new_task_package)
+                            self.logger.add_st_memory(f"Labor agent {agent.name} provided initial response (attempt {retry_count + 1})")
+                        else:
+                            # Retry attempts - include feedback from previous validation
+                            feedback_context = "\n".join([f"Previous feedback {i+1}: {fb}" for i, fb in enumerate(validation_feedback_history)])
+                            enhanced_instruction = f"{new_task_package.instruction}\n\nPrevious attempts had these issues:\n{feedback_context}\n\nPlease provide a corrected response addressing these concerns."
+                            retry_task_package = self.create_TP(enhanced_instruction, agent.id)
+                            observation = agent(retry_task_package)
+                            self.logger.add_st_memory(f"Labor agent {agent.name} provided retry response (attempt {retry_count + 1})")
+                        
+                        latest_observation = observation
+                        
+                        # Validate the observation using ValidatorAgent
+                        print(f"&&& Validating the observation with ValidatorAgent (attempt {retry_count + 1})")
+                        validation_task = TaskPackage(
+                            instruction=new_task_package.instruction,
+                            answer=observation,
+                            task_creator=self.id,
+                            task_executor=self.validator.name,
                         )
-                        revised_observation = agent(revised_task_package)  # Send the revised task to the labor agent
-                        return f"Validation failed: {validation_result.answer}. Revised observation: {revised_observation}"
+                        validation_result = self.validator.respond(validation_task)
+                        
+                        if validation_result.completion == "validated":
+                            validation_passed = True
+                            self.logger.add_st_memory(f"Validation passed on attempt {retry_count + 1}")
+                            return observation
+                        elif validation_result.completion == "needs_revision":
+                            validation_feedback_history.append(validation_result.answer)
+                            retry_count += 1
+                            if retry_count <= self.max_retries:
+                                self.logger.warning(f"Validation failed on attempt {retry_count}. Retrying... (Feedback: {validation_result.answer})")
+                            else:
+                                self.logger.warning(f"Validation failed after {self.max_retries + 1} attempts. Returning last response.")
+                                return latest_observation   # return the last observation although validation failed
+                        else:
+                            # Unknown validation result
+                            self.logger.warning(f"Unknown validation result: {validation_result.completion}")
+                            retry_count += 1
+                    
+                    # If we've exhausted retries, return the last observation with accumulated feedback
+                    if not validation_passed:
+                        feedback_summary = "\n".join([f"Validation attempt {i+1}: {fb}" for i, fb in enumerate(validation_feedback_history)])
+                        return f"VALIDATION FAILED AFTER {retry_count} ATTEMPTS:\n{feedback_summary}\n\nLast response from {agent.name}:\n{latest_observation}"
+                        
+                else:
+                    # No validation enabled, return observation directly
+                    observation = agent(new_task_package)
+                    return observation
 
         # if action is inner action
         for action in self.actions:

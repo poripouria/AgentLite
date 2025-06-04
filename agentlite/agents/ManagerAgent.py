@@ -171,9 +171,17 @@ class ManagerAgent(BaseAgent):
                     )
                     validation_result = self.validator.respond(validation_task)
                     if validation_result.completion == "validated":
+                        self.logger.info("Validation successful. Proceeding with the validated answer.")
                         return validation_result.answer  # Return validated response
                     else:
-                        return validation_result.answer  # Return feedback for revision
+                        self.logger.warning("Validation failed. Requesting revision from the labor agent.")
+                        # Reassign the task to the labor agent for revision
+                        revised_task_package = self.create_TP(
+                            task_ins=new_task_package.instruction,
+                            executor=agent.id
+                        )
+                        revised_observation = agent(revised_task_package)  # Send the revised task to the labor agent
+                        return f"Validation failed: {validation_result.answer}. Revised observation: {revised_observation}"
 
         # if action is inner action
         for action in self.actions:

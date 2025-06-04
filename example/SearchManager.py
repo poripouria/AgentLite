@@ -31,7 +31,9 @@ def test_manager_agent():
     llm_config_dict = {
         "provider": "ollama",
         "base_url": "http://localhost:11434",
-        "llm_name": "gemma3:4b",
+        "llm_name": "deepseek-r1:8b", # "gemma3:4b"
+        # "llm_name": "gpt-4.1",
+        # "provider": "openai",
         "temperature": 0.9,
         "context_len": 4000,
     }

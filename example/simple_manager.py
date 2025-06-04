@@ -3,8 +3,12 @@ from agentlite.llm.agent_llms import get_llm_backend
 from agentlite.llm.LLMConfig import LLMConfig
 
 llm_config_dict = {
-    "llm_name": "gpt-3.5-turbo-16k-0613",
     "temperature": 0.9,
+    "provider": "ollama",
+    "base_url": "http://localhost:11434",
+    "llm_name": "deepseek-r1:8b",
+    # "llm_name": "o4-mini",
+    # "provider": "openai"
 }
 llm_config = LLMConfig(llm_config_dict)
 llm = get_llm_backend(llm_config)

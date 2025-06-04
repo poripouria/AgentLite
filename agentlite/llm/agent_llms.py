@@ -52,7 +52,7 @@ class BaseLLM:
             return full_text
         
         response = requests.post(self.base_url, json={
-            "model": "deepseek-r1:8b",
+            "model": "gemma3:4b", # "deepseek-r1:8b"
             "prompt": prompt,
         }, stream=True)
 

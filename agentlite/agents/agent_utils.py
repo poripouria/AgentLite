@@ -16,8 +16,20 @@ def name_checking(name: str):
 
 
 def act_match(input_act_name: str, act: BaseAction):
+    print(f"Checking action match for: {input_act_name} with {act.action_name}")
     if input_act_name == act.action_name:  # exact match
+        print(f"EXACT matched")
         return True
+    input_act_name_cleaned = re.sub(r"[<>{}\[\]().,;:!@#$%^&*]", "", input_act_name).lower()
+    act_name_cleaned = re.sub(r"[<>{}\[\]().,;:!@#$%^&*]", "", act.action_name).lower()
+    if input_act_name_cleaned == act_name_cleaned:  # cleaned match
+        print(f"CLEANED matched")
+        return True
+    if input_act_name.lower() in act.action_name.lower() or act.action_name.lower() in input_act_name.lower():
+        # fuzzy match, if input_act_name is a substring of act.action_name or vice versa
+        print(f"FUZZY matched")
+        return True
+    
     ## To-Do More fuzzy match
     return False
 

@@ -85,3 +85,7 @@ class AgentLogger(BaseAgentLogger):
         log_str = f"""LLM generates: {self.__color_prompt_str__(output)}"""
         if self.PROMPT_DEBUG_FLAG:
             self.__save_log__(log_str)
+
+    def warning(self, message: str):
+        log_str = f"""WARNING: {bcolors.WARNING}{message}{bcolors.ENDC}"""
+        self.__save_log__(log_str)
